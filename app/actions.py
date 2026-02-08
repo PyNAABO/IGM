@@ -1,7 +1,7 @@
 import time
 import random
 from app.utils import get_logger, random_sleep
-from app.config import IG_USERNAME
+from app.config import IG_USERNAME, TIMEOUT_ACTION, TIMEOUT_MODAL
 
 logger = get_logger(__name__)
 
@@ -21,7 +21,7 @@ def process_unfollows(page):
     # Click "Following" link to open modal
     try:
         page.locator(f"a[href='/{IG_USERNAME}/following/']").click()
-        page.wait_for_selector("div[role='dialog']", timeout=10000)
+        page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
     except Exception as e:
         logger.warning(f"Could not open 'Following' dialog: {e}")
         return
@@ -130,7 +130,7 @@ def process_unfollows(page):
                         try:
                             # Wait for dialog to close
                             page.locator("div[role='dialog']").wait_for(
-                                state="hidden", timeout=3000
+                                state="hidden", timeout=TIMEOUT_MODAL
                             )
                         except Exception:
                             logger.warning(
@@ -175,7 +175,9 @@ def process_unfollows(page):
                     try:
                         unfollow_confirm = page.get_by_role("button", name="Unfollow")
                         # Wait up to 5 seconds for the modal
-                        unfollow_confirm.wait_for(state="visible", timeout=5000)
+                        unfollow_confirm.wait_for(
+                            state="visible", timeout=TIMEOUT_ACTION
+                        )
                         unfollow_confirm.click()
                         count += 1
                         logger.info(f"Successfully unfollowed {user}")
@@ -208,7 +210,7 @@ def process_followbacks(page):
     # Click "Followers" link to open modal
     try:
         page.locator(f"a[href='/{IG_USERNAME}/followers/']").click()
-        page.wait_for_selector("div[role='dialog']", timeout=10000)
+        page.wait_for_selector("div[role='dialog']", timeout=TIMEOUT_MODAL)
     except Exception as e:
         logger.warning(f"Could not open 'Followers' dialog: {e}")
         return

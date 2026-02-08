@@ -8,7 +8,7 @@ REDIS_URL = os.getenv("REDIS_URL")
 print(f"Testing Redis connection to: {REDIS_URL}")
 
 try:
-    r = redis.from_url(REDIS_URL, decode_responses=True, ssl_cert_reqs=None)
+    r = redis.from_url(REDIS_URL, decode_responses=True)
     # Ping
     print(f"Ping response: {r.ping()}")
     # Set/Get

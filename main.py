@@ -1,5 +1,6 @@
 import sys
 import time
+import os
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 from app.config import IG_USERNAME, IG_PASSWORD
@@ -9,6 +10,7 @@ from app.session_manager import (
     check_schedule,
     update_schedule,
 )
+from app.config import TIMEOUT_NAVIGATION
 from app.utils import get_logger, random_sleep
 from app.actions import process_unfollows, process_followbacks
 
@@ -39,13 +41,17 @@ def main():
 
         page = context.new_page()
 
+        # Create screenshots directory if it doesn't exist
+        if not os.path.exists("screenshots"):
+            os.makedirs("screenshots")
+
         try:
             logger.info("Navigating to Instagram...")
             try:
                 page.goto(
                     "https://www.instagram.com/",
                     wait_until="domcontentloaded",
-                    timeout=60000,
+                    timeout=TIMEOUT_NAVIGATION,
                 )
             except Exception as e:
                 logger.warning(f"Navigation timeout: {e}")
@@ -59,7 +65,7 @@ def main():
                 )
                 logger.error("Please run: python -m scripts.import_cookies")
                 page.screenshot(
-                    path=f"error_session_invalid_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                    path=f"screenshots/error_session_invalid_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
                 )
                 browser.close()
                 sys.exit(1)  # Exit immediately to prevent triggering anti-bot
@@ -78,7 +84,9 @@ def main():
 
         except Exception as e:
             logger.error(f"Error during execution: {e}")
-            error_screenshot = f"error_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            error_screenshot = (
+                f"screenshots/error_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            )
             page.screenshot(path=error_screenshot)
             logger.info(f"Error screenshot saved: {error_screenshot}")
         finally:
