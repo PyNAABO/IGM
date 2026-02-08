@@ -25,7 +25,7 @@ Add the following secrets:
 The bot is configured to run automatically:
 
 - **Frequent Check**: Runs every **30 minutes** (configurable in `.github/workflows/instagram_bot.yml`).
-- **Random Execution**: Acts like a human by only executing "real" actions every **4-8 hours** (randomly determined). If it wakes up too early, it checks the schedule and goes back to sleep.
+- **Random Execution**: Acts like a human by only executing "real" actions every **2-5 hours** (randomly determined). If it wakes up too early, it checks the schedule and goes back to sleep.
 - **Manually**: Go to **Actions** tab -> **Instagram Automation Bot** -> **Run workflow**.
 
 ## Features

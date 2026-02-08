@@ -84,12 +84,12 @@ def check_schedule(username):
 
 
 def update_schedule(username):
-    """Sets the next run time to a random interval (4-8 hours)."""
+    """Sets the next run time to a random interval (2-5 hours) - Balanced approach."""
     r = get_redis_client()
     if not r:
         return
 
-    hours = random.uniform(4, 8)
+    hours = random.uniform(2, 5)  # Balanced: 5-12 executions/day
     next_run = datetime.now() + timedelta(hours=hours)
     r.set(f"schedule:{username}:next_run", next_run.timestamp())
     logger.info(f"Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
