@@ -20,8 +20,13 @@ def get_redis_client():
         return None
     try:
         # Use decode_responses=True to get strings instead of bytes
-        # Removed ssl_cert_reqs=None for security, assuming valid certs or standard connection
-        return redis.from_url(REDIS_URL, decode_responses=True)
+        # Add timeouts to prevent hanging connections
+        return redis.from_url(
+            REDIS_URL,
+            decode_responses=True,
+            socket_connect_timeout=5,  # 5 seconds to connect
+            socket_timeout=5,  # 5 seconds for socket operations
+        )
     except Exception as e:
         logger.error(f"Failed to connect to Redis: {e}")
         return None
@@ -59,7 +64,13 @@ def check_schedule(username):
     """Checks if it's time to run based on Redis timestamp."""
     r = get_redis_client()
     if not r:
-        return True  # Default to run if Redis fails
+        # CRITICAL: Default to NOT run if Redis fails (safer behavior)
+        # This prevents accidental rate-limit violations
+        logger.warning(
+            "Redis unavailable. Defaulting to SKIP run for safety. "
+            "Fix your Redis connection to resume automation."
+        )
+        return False  # Changed from True - safer default
 
     next_run = r.get(f"schedule:{username}:next_run")
     if next_run:

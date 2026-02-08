@@ -1,8 +1,6 @@
 import logging
 import sys
-import json
 import time
-import redis
 import random
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
@@ -51,10 +49,11 @@ def process_unfollows(page):
 
     # Extract visible usernames from the dialog
     # We target the links inside the dialog that look like user profiles
-    links = page.locator("div[role='dialog'] div[role='button'] a").all()
-    # If that selector fails, try generic 'a' in dialog
+    # Using more specific selector to avoid false matches
+    links = page.locator("div[role='dialog'] a[role='link'][href^='/']").all()
+    # Fallback: try with slightly less specific selector
     if not links:
-        links = page.locator("div[role='dialog'] a").all()
+        links = page.locator("div[role='dialog'] a[href^='/']").all()
 
     usernames = []
     for link in links:
@@ -64,8 +63,15 @@ def process_unfollows(page):
             if user != IG_USERNAME:
                 usernames.append(user)
 
-    usernames = list(set(usernames))[:MAX_ACTIONS_PER_RUN]
-    logger.info(f"Found {len(usernames)} users to check.")
+    all_usernames = list(set(usernames))
+    usernames = all_usernames[:MAX_ACTIONS_PER_RUN]
+
+    if len(all_usernames) > MAX_ACTIONS_PER_RUN:
+        logger.info(
+            f"Found {len(all_usernames)} users, limiting to {len(usernames)} for this run."
+        )
+    else:
+        logger.info(f"Found {len(usernames)} users to check.")
 
     # Close dialog before processing (optional, but cleaner)
     # page.keyboard.press("Escape")
@@ -83,64 +89,71 @@ def process_unfollows(page):
             )
             time.sleep(random.uniform(3, 6))
 
-            # Check for "Follows you" badge
+            # CRITICAL: Check for "Follow Back" button first
+            # If button says "Follow Back", it means they ARE following us!
             follows_you = False
-            if page.get_by_text("Follows you").count() > 0:
-                follows_you = True
-                logger.info(f"Badge 'Follows you' found for {user}.")
 
-            # If badge not found, perform deep check
-            if not follows_you:
+            # Check for "Follow Back" button (appears when they follow you)
+            follow_back_btn = page.locator("button").filter(has_text="Follow Back")
+            if follow_back_btn.count() > 0:
+                follows_you = True
+                logger.info(f"'Follow Back' button found for {user}. They follow you!")
+
+            # Also check for "Follows you" badge as secondary indicator
+            elif page.get_by_text("Follows you").count() > 0:
+                follows_you = True
+                logger.info(f"'Follows you' badge found for {user}.")
+
+            # If neither found, perform deep check in their following list
+            else:
                 logger.info(
-                    f"Badge not found for {user}. Performing deep check in their Following list..."
+                    f"No 'Follow Back' button or badge for {user}. Performing deep check in their Following list..."
                 )
                 try:
                     # Click "following" link (href containing /following/)
-                    page.locator(f"a[href*='/{user}/following/']").click()
-                    time.sleep(random.uniform(2, 4))
-
-                    # Wait for dialog and search input
-                    # Search input usually has placeholder "Search" or similar aria-label
-                    search_input = page.locator(
-                        "div[role='dialog'] input[placeholder='Search']"
-                    )
-
-                    if search_input.count() > 0:
-                        search_input.fill(IG_USERNAME)
+                    following_link = page.locator(f"a[href*='/{user}/following/']")
+                    if following_link.count() > 0:
+                        following_link.click()
                         time.sleep(random.uniform(2, 4))
 
-                        # Check if our profile appears in the results
-                        # We look for a link to our profile
-                        my_profile_link = page.locator(
-                            f"div[role='dialog'] a[href='/{IG_USERNAME}/']"
+                        # Wait for dialog and search input
+                        search_input = page.locator(
+                            "div[role='dialog'] input[placeholder='Search']"
                         )
 
-                        if my_profile_link.count() > 0:
-                            follows_you = True
-                            logger.info(
-                                f"Found {IG_USERNAME} in {user}'s following list. They follow you."
+                        if search_input.count() > 0:
+                            search_input.fill(IG_USERNAME)
+                            time.sleep(random.uniform(2, 4))
+
+                            # Check if our profile appears in the results
+                            my_profile_link = page.locator(
+                                f"div[role='dialog'] a[href='/{IG_USERNAME}/']"
                             )
+
+                            if my_profile_link.count() > 0:
+                                follows_you = True
+                                logger.info(
+                                    f"Found {IG_USERNAME} in {user}'s following list. They follow you."
+                                )
+                            else:
+                                logger.info(
+                                    f"{IG_USERNAME} NOT found in {user}'s following list."
+                                )
                         else:
-                            logger.info(
-                                f"{IG_USERNAME} NOT found in {user}'s following list."
+                            logger.warning(
+                                "Could not find search input in Following dialog."
                             )
 
+                        # Close dialog
+                        page.keyboard.press("Escape")
+                        time.sleep(1)
                     else:
-                        logger.warning(
-                            "Could not find search input in Following dialog."
-                        )
-
-                    # Close dialog specifically
-                    # Usually there is a close button or we can press Escape
-                    page.keyboard.press("Escape")
-                    time.sleep(1)
+                        logger.warning(f"Could not find 'following' link for {user}")
 
                 except Exception as e:
                     logger.warning(f"Deep check failed for {user}: {e}")
-                    # If unsure, we might want to skip or default to False.
-                    # For safety, let's assume they might follow us if check failed?
-                    # User wanted verification, so if verification fails, maybe skip unfollow logic to be safe?
-                    # But the prompt says "if not then unfollow". Let's stick to follows_you=False if deep check fails effectively.
+                    # If deep check fails, assume they DON'T follow to be safe
+                    # This prevents accidentally keeping non-followers
 
             if not follows_you:
                 logger.info(f"{user} does NOT follow you. Unfollowing...")
@@ -153,11 +166,19 @@ def process_unfollows(page):
 
                 if following_btn.count() > 0:
                     following_btn.click()
-                    time.sleep(2)
-                    # Confirm Unfollow
-                    page.get_by_role("button", name="Unfollow").click()
-                    count += 1
-                    random_sleep()
+                    time.sleep(random.uniform(1, 2))
+
+                    # Wait for confirmation modal to appear
+                    try:
+                        unfollow_confirm = page.get_by_role("button", name="Unfollow")
+                        # Wait up to 5 seconds for the modal
+                        unfollow_confirm.wait_for(state="visible", timeout=5000)
+                        unfollow_confirm.click()
+                        count += 1
+                        logger.info(f"Successfully unfollowed {user}")
+                        random_sleep()
+                    except Exception as e:
+                        logger.warning(f"Failed to confirm unfollow for {user}: {e}")
                 else:
                     logger.warning(
                         "Could not find 'Following' button. Already unfollowed?"
@@ -191,9 +212,10 @@ def process_followbacks(page):
 
     time.sleep(3)
 
-    links = page.locator("div[role='dialog'] div[role='button'] a").all()
+    # Using more specific selector to avoid false matches
+    links = page.locator("div[role='dialog'] a[role='link'][href^='/']").all()
     if not links:
-        links = page.locator("div[role='dialog'] a").all()
+        links = page.locator("div[role='dialog'] a[href^='/']").all()
 
     usernames = []
     for link in links:
@@ -203,8 +225,15 @@ def process_followbacks(page):
             if user != IG_USERNAME:
                 usernames.append(user)
 
-    usernames = list(set(usernames))[:MAX_ACTIONS_PER_RUN]
-    logger.info(f"Found {len(usernames)} fans to check.")
+    all_usernames = list(set(usernames))
+    usernames = all_usernames[:MAX_ACTIONS_PER_RUN]
+
+    if len(all_usernames) > MAX_ACTIONS_PER_RUN:
+        logger.info(
+            f"Found {len(all_usernames)} fans, limiting to {len(usernames)} for this run."
+        )
+    else:
+        logger.info(f"Found {len(usernames)} fans to check.")
 
     count = 0
     for user in usernames:
@@ -290,16 +319,23 @@ def main():
 
             time.sleep(5)
 
-            if page.locator("input[name='username']").is_visible():
+            # Critical: Validate session before any actions
+            if page.locator("input[name='username']").count() > 0:
                 logger.error(
-                    "Login form detected. Session invalid. Please run import_cookies.py."
+                    "CRITICAL: Login form detected. Session invalid or expired."
                 )
-                return
+                logger.error("Please run: python import_cookies.py")
+                page.screenshot(
+                    path=f"error_session_invalid_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                )
+                browser.close()
+                sys.exit(1)  # Exit immediately to prevent triggering anti-bot
 
             # Execute Features
             process_unfollows(page)
-            # Short break between major tasks
-            time.sleep(10)
+            # Random break between major tasks for anti-detection
+            logger.info("Taking a break between tasks...")
+            random_sleep()
             process_followbacks(page)
 
             # Update cookies and schedule
@@ -309,7 +345,9 @@ def main():
 
         except Exception as e:
             logger.error(f"Error during execution: {e}")
-            page.screenshot(path="error.png")
+            error_screenshot = f"error_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            page.screenshot(path=error_screenshot)
+            logger.info(f"Error screenshot saved: {error_screenshot}")
         finally:
             browser.close()
 

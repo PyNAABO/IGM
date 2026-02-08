@@ -34,7 +34,18 @@ The bot is configured to run automatically:
 - **Browser Automation (Playwright)**: Mimics a real user on a Chrome browser.
 - **Smart Unfollow**: Checks your "Following" list, visits profiles individually, and correctly unfollows users who don't follow you back.
 - **Smart Follow Back**: Checks your "Followers" list and follows back your fans.
-- **Human-Like Limits**: Executes only 10-15 actions per run to stay well under Instagram's rate limits.
+- **Human-Like Limits**: Executes up to **10 actions per run** to stay well under Instagram's rate limits.
+- **Anti-Detection**: Random sleep intervals between actions (10-30 seconds).
+- **Session Validation**: Automatically detects expired sessions and exits safely to prevent anti-bot triggers.
+
+## Security Features
+
+- ✅ **Redis Connection Timeouts**: 5-second timeouts prevent hanging connections
+- ✅ **Safe Defaults**: Bot won't run if Redis is unavailable (prevents rate-limit violations)
+- ✅ **Session Validation**: Checks for valid login before any actions
+- ✅ **Race Condition Protection**: Waits for modals to appear before clicking
+- ✅ **Input Validation**: Validates sessionid format during cookie import
+- ✅ **Timestamped Error Logs**: Error screenshots include timestamps for debugging
 
 ## Local Development
 
@@ -59,8 +70,16 @@ The bot is configured to run automatically:
     python main.py
     ```
 
-> **Note**: SSL verification for Redis is enabled by default. If you are using a Redis instance with self-signed certificates, ensure your environment is configured correctly or use a valid `REDIS_URL`.
+> **Note**: If Redis is unavailable, the bot will skip execution by default for safety. Ensure your Redis connection is working for automation to proceed.
 
 ## Customization
 
 Edit `main.py` to add your custom automation logic inside the `try/except` block at the end of the `main()` function.
+
+## Development Dependencies
+
+For testing and development, install additional dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```

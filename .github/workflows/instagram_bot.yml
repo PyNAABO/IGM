@@ -2,7 +2,7 @@ name: Instagram Automation Bot
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day
+    # Runs every 30 minutes
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
@@ -32,3 +32,12 @@ jobs:
           REDIS_URL: ${{ secrets.REDIS_URL }}
         run: |
           python main.py
+
+      - name: Upload error screenshots
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: error-screenshots
+          path: error*.png
+          if-no-files-found: ignore
+          retention-days: 7
