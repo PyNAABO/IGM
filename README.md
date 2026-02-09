@@ -49,11 +49,10 @@ Create a `.env` file in the root directory:
 
 ```ssh
 IG_USERNAME=your_username
-IG_PASSWORD=your_password
 REDIS_URL=redis://default:password@endpoint:port
 ```
 
-> **Note**: `IG_USERNAME` and `IG_PASSWORD` are mandatory. The bot will validate these on startup.
+> **Note**: `IG_USERNAME` is mandatory. The bot uses cookie-based authentication (no password login).
 
 ### 3. Installation
 

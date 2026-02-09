@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-from .config import IG_USERNAME, IG_PASSWORD, TIMEOUT_NAVIGATION, USER_AGENT
+from .config import IG_USERNAME, TIMEOUT_NAVIGATION, USER_AGENT
 from .session import load_cookies, save_cookies, check_schedule, update_schedule
 from .utils import random_sleep
 
@@ -20,14 +20,13 @@ logger = logging.getLogger("IGMBot")
 class IGMBot:
     def __init__(self):
         self.username = IG_USERNAME
-        self.password = IG_PASSWORD
         self.browser = None
         self.context = None
         self.page = None
         self.playwright = None
 
-        if not self.username or not self.password:
-            logger.error("IG_USERNAME or IG_PASSWORD not set.")
+        if not self.username:
+            logger.error("IG_USERNAME not set.")
             sys.exit(1)
 
     def start(self, headless=True):
