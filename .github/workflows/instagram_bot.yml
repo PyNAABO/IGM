@@ -33,20 +33,10 @@ jobs:
         run: |
           python run.py
 
-      - name: Upload error screenshots
-        if: failure()
+      - name: Upload debug HTML
         uses: actions/upload-artifact@v4
         with:
-          name: error-screenshots
-          path: screenshots/error*.png
+          name: debug-html
+          path: screenshots/debug*.html
           if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload error HTML
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: error-html
-          path: screenshots/error*.html
-          if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 3
