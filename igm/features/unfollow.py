@@ -2,8 +2,7 @@ import time
 import random
 from .base import BaseFeature
 from igm.core.config import TIMEOUT_MODAL, TIMEOUT_ACTION, MAX_ACTIONS_PER_RUN
-
-from igm.core.config import TIMEOUT_MODAL, TIMEOUT_ACTION, MAX_ACTIONS_PER_RUN
+from igm.core.session import filter_unprocessed_users, mark_user_processed
 
 
 class UnfollowFeature(BaseFeature):
@@ -43,7 +42,12 @@ class UnfollowFeature(BaseFeature):
 
         # Filter unique and slice
         all_usernames = list(set(usernames))
-        targets = all_usernames[:MAX_ACTIONS_PER_RUN]
+
+        # Filter out already-processed users
+        unprocessed_users = filter_unprocessed_users(
+            username, all_usernames, "unfollow"
+        )
+        targets = unprocessed_users[:MAX_ACTIONS_PER_RUN]
 
         self.logger.info(
             f"Found {len(targets)} users to check (out of {len(all_usernames)} visible)."
@@ -56,24 +60,14 @@ class UnfollowFeature(BaseFeature):
 
             self.logger.info(f"Checking {user}...")
             try:
-                self.process_single_user(user)
-
-                # Logic Clarification:
-                # We originally only incremented 'count' if an unfollow happened.
-                # However, to avoid infinite loops or excessive checking, we should arguably
-                # count every *processed* user towards the limit, or at least have a failsafe.
-                # For now, we will stick to the safer approach:
-                # Count = Number of ACTIONS taken (Unfollows).
-                # The process_single_user method returns True if an action was taken, False otherwise.
-                # We need to update process_single_user to return this boolean.
-
-                # TODO: Update process_single_user signature to return bool
-                # For this immediate fix, we'll assume we want to limit CHECKS to avoid rate limits
-                # on profile views as well.
-                count += 1
-
+                if self.process_single_user(user):
+                    count += 1
+                # Mark as processed regardless of outcome
+                mark_user_processed(username, user, "unfollow")
             except Exception as e:
                 self.logger.error(f"Error checking {user}: {e}")
+                # Still mark as processed to avoid retrying failed users
+                mark_user_processed(username, user, "unfollow")
 
         self.logger.info(f"Unfollow cycle verify complete.")
 
@@ -89,8 +83,10 @@ class UnfollowFeature(BaseFeature):
         if not follows_you:
             self.logger.info(f"{user} does NOT follow you. Unfollowing...")
             self.perform_unfollow(user)
+            return True
         else:
             self.logger.info(f"{user} follows you. Keeping.")
+            return False
 
     def check_if_follows_me(self, user):
         # 1. "Follow Back" button?

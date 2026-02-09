@@ -92,3 +92,88 @@ def update_schedule(username):
     next_run = datetime.now() + timedelta(hours=hours)
     r.set(f"schedule:{username}:next_run", next_run.timestamp())
     logger.info(f"Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+
+
+# User Tracking System - Prevents checking the same users repeatedly
+PROCESSED_USER_EXPIRY_DAYS = 21  # 3 weeks
+
+
+def mark_user_processed(username, target_user, feature_type):
+    """
+    Marks a target user as processed for a specific feature.
+
+    Args:
+        username: Bot account username
+        target_user: Instagram username that was processed
+        feature_type: 'follow' or 'unfollow'
+    """
+    r = get_redis_client()
+    if not r:
+        return False
+
+    try:
+        key = f"processed:{username}:{feature_type}"
+        r.sadd(key, target_user)
+        r.expire(key, PROCESSED_USER_EXPIRY_DAYS * 24 * 3600)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to mark user as processed: {e}")
+        return False
+
+
+def is_user_processed(username, target_user, feature_type):
+    """
+    Checks if a target user has already been processed.
+
+    Args:
+        username: Bot account username
+        target_user: Instagram username to check
+        feature_type: 'follow' or 'unfollow'
+
+    Returns:
+        bool: True if user was already processed, False otherwise
+    """
+    r = get_redis_client()
+    if not r:
+        return False
+
+    try:
+        key = f"processed:{username}:{feature_type}"
+        return r.sismember(key, target_user)
+    except Exception as e:
+        logger.error(f"Failed to check if user was processed: {e}")
+        return False
+
+
+def filter_unprocessed_users(username, user_list, feature_type):
+    """
+    Filters out users that have already been processed.
+
+    Args:
+        username: Bot account username
+        user_list: List of Instagram usernames to filter
+        feature_type: 'follow' or 'unfollow'
+
+    Returns:
+        list: Filtered list containing only unprocessed users
+    """
+    r = get_redis_client()
+    if not r:
+        logger.warning("Redis unavailable, returning unfiltered list.")
+        return user_list
+
+    try:
+        key = f"processed:{username}:{feature_type}"
+        unprocessed = [u for u in user_list if not r.sismember(key, u)]
+
+        processed_count = len(user_list) - len(unprocessed)
+        if processed_count > 0:
+            logger.info(
+                f"Filtered out {processed_count} already-processed users. "
+                f"{len(unprocessed)} remaining."
+            )
+
+        return unprocessed
+    except Exception as e:
+        logger.error(f"Failed to filter users: {e}")
+        return user_list

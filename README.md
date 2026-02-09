@@ -25,8 +25,8 @@ IGM/
 │   │   ├── base.py         # Feature Base Class
 │   │   ├── follow.py       # Follow-back Logic
 │   │   ├── unfollow.py     # Unfollow Non-followers Logic
-│   │   ├── like.py         # [Placeholder]
-│   │   └── dm.py           # [Placeholder]
+│   │   ├── like.py         # [Placeholder] Logic for liking posts
+│   │   └── dm.py           # [Placeholder] Logic for sending DMs
 │   └── __main__.py         # Package Entry Point
 ├── scripts/                # Helper Tools
 │   ├── import_cookies.py   # Initial Login/Import Tool
@@ -52,6 +52,8 @@ IG_USERNAME=your_username
 IG_PASSWORD=your_password
 REDIS_URL=redis://default:password@endpoint:port
 ```
+
+> **Note**: `IG_USERNAME` and `IG_PASSWORD` are mandatory. The bot will validate these on startup.
 
 ### 3. Installation
 
@@ -108,6 +110,24 @@ The modular design makes it easy to add new automation logic:
 
 3. Register it in `igm/__main__.py` or call it from `run.py`.
 
+## 🔄 User Tracking System
+
+The bot intelligently tracks which users have been processed to avoid checking the same accounts repeatedly:
+
+- **Persistent Memory**: Uses Redis to remember who's been checked for 21 days (3 weeks)
+- **Separate Tracking**: Follow and Unfollow features maintain independent tracking
+- **Automatic Progress**: Each run processes new users, systematically working through your entire list
+- **Auto-Reset**: After 3 weeks, all users become "unprocessed" again to catch status changes
+
+**Example Flow:**
+
+- Run 1: Checks users 1-10, marks them as processed
+- Run 2: Automatically skips 1-10, checks users 11-20
+- Run 3: Skips 1-20, checks users 21-30
+- After 3 weeks: Reset, can re-check all users
+
+This prevents the "Groundhog Day" problem where the bot would endlessly check the same 10 users.
+
 ## 🛡️ Anti-Detection Measures
 
 - **User Agent**: Mimics a standard Windows Chrome 120 browser.
@@ -119,6 +139,7 @@ The modular design makes it easy to add new automation logic:
 
 - To change the frequency of runs, edit `igm/core/session.py` -> `update_schedule`.
 - To adjust navigation timeouts, edit `igm/core/config.py`.
+- To change the tracking reset period (default: 3 weeks), edit `PROCESSED_USER_EXPIRY_DAYS` in `igm/core/session.py`.
 
 ---
 

@@ -4,7 +4,7 @@ import time
 import random
 import logging
 from datetime import datetime
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 from .config import IG_USERNAME, IG_PASSWORD, TIMEOUT_NAVIGATION, USER_AGENT
 from .session import load_cookies, save_cookies, check_schedule, update_schedule
@@ -73,8 +73,12 @@ class IGMBot:
                     wait_until="domcontentloaded",
                     timeout=TIMEOUT_NAVIGATION,
                 )
+            except PlaywrightTimeoutError:
+                logger.error("Navigation timed out. Internet might be slow or down.")
+                return False
             except Exception as e:
-                logger.warning(f"Navigation timeout: {e}")
+                logger.error(f"Navigation error: {e}")
+                return False
 
             time.sleep(5)
 

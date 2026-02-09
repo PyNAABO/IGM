@@ -2,8 +2,7 @@ import time
 import random
 from .base import BaseFeature
 from igm.core.config import TIMEOUT_MODAL, MAX_ACTIONS_PER_RUN
-
-from igm.core.config import TIMEOUT_MODAL, MAX_ACTIONS_PER_RUN
+from igm.core.session import filter_unprocessed_users, mark_user_processed
 
 
 class FollowFeature(BaseFeature):
@@ -39,7 +38,10 @@ class FollowFeature(BaseFeature):
                     usernames.append(user)
 
         all_usernames = list(set(usernames))
-        targets = all_usernames[:MAX_ACTIONS_PER_RUN]
+
+        # Filter out already-processed users
+        unprocessed_users = filter_unprocessed_users(username, all_usernames, "follow")
+        targets = unprocessed_users[:MAX_ACTIONS_PER_RUN]
 
         self.logger.info(f"Found {len(targets)} fans to check.")
 
@@ -52,8 +54,12 @@ class FollowFeature(BaseFeature):
             try:
                 if self.process_single_user(user):
                     count += 1
+                # Mark as processed regardless of outcome
+                mark_user_processed(username, user, "follow")
             except Exception as e:
                 self.logger.error(f"Error checking {user}: {e}")
+                # Still mark as processed to avoid retrying failed users
+                mark_user_processed(username, user, "follow")
 
         self.logger.info(f"Followed back {count} users.")
 

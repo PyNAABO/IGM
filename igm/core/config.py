@@ -12,6 +12,9 @@ if not REDIS_URL:
         "WARNING: REDIS_URL is not set. Session persistence and scheduling will be disabled."
     )
 
+if not IG_USERNAME or not IG_PASSWORD:
+    raise ValueError("IG_USERNAME and IG_PASSWORD must be set in .env file.")
+
 # Timeouts (in milliseconds)
 TIMEOUT_NAVIGATION = 60000
 TIMEOUT_MODAL = 10000
