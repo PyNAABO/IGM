@@ -1,9 +1,9 @@
-from igm.core.bot import IGMBot
-from igm.features import UnfollowFeature, FollowFeature
+from iaf.core.bot import IAFBot
+from iaf.features import UnfollowFeature, FollowFeature
 
 
 def main():
-    bot = IGMBot()
+    bot = IAFBot()
     if bot.start(headless=True):
         if bot.login():
             # Execution Cycle

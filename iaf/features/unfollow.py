@@ -1,8 +1,8 @@
 import time
 import random
 from .base import BaseFeature
-from igm.core.config import TIMEOUT_MODAL, TIMEOUT_ACTION, MAX_ACTIONS_PER_RUN
-from igm.core.session import filter_unprocessed_users, mark_user_processed
+from iaf.core.config import TIMEOUT_MODAL, TIMEOUT_ACTION, MAX_ACTIONS_PER_RUN
+from iaf.core.session import filter_unprocessed_users, mark_user_processed
 
 
 class UnfollowFeature(BaseFeature):

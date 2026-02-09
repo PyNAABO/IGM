@@ -1,4 +1,4 @@
-# Instagram Automation Framework (IGM)
+# Instagram Automation Framework (IAF)
 
 A modular, framework-style automation tool for Instagram interactions. Built with Python, Playwright, and Redis for high reliability and anti-detection.
 
@@ -14,10 +14,10 @@ A modular, framework-style automation tool for Instagram interactions. Built wit
 ## 📂 Project Structure
 
 ```text
-IGM/
-├── igm/                    # Core Package
+IAF/
+├── iaf/                    # Core Package
 │   ├── core/               # System Logic
-│   │   ├── bot.py          # Central IGMBot Class
+│   │   ├── bot.py          # Central IAFBot Class
 │   │   ├── session.py      # Redis Session/Schedule Manager
 │   │   ├── config.py       # Environment Configuration
 │   │   └── utils.py        # Shared Utilities

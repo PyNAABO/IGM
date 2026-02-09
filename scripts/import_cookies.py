@@ -1,5 +1,5 @@
-from igm.core.config import IG_USERNAME
-from igm.core.session import save_cookies
+from iaf.core.config import IG_USERNAME
+from iaf.core.session import save_cookies
 from urllib.parse import unquote
 
 

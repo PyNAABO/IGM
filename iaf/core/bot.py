@@ -14,10 +14,10 @@ from .utils import random_sleep
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger("IGMBot")
+logger = logging.getLogger("IAFBot")
 
 
-class IGMBot:
+class IAFBot:
     def __init__(self):
         self.username = IG_USERNAME
         self.browser = None
@@ -39,7 +39,7 @@ class IGMBot:
             logger.info("Schedule check failed (too early). Exiting.")
             return False
 
-        logger.info("Starting IGMBot...")
+        logger.info("Starting IAFBot...")
         self.playwright = sync_playwright().start()
         self.browser = self.playwright.chromium.launch(headless=headless)
         self.context = self.browser.new_context(user_agent=USER_AGENT)
@@ -132,7 +132,7 @@ class IGMBot:
             self.browser.close()
         if self.playwright:
             self.playwright.stop()
-        logger.info("IGMBot closed.")
+        logger.info("IAFBot closed.")
 
     def random_sleep(self, min_seconds=2, max_seconds=5):
         # Wrapper around utils.random_sleep for backward compatibility in features if needed

@@ -1,4 +1,4 @@
-from igm.__main__ import main
+from iaf.__main__ import main
 
 if __name__ == "__main__":
     main()
