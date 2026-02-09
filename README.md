@@ -95,7 +95,7 @@ FORCE_RUN=true python run.py
 
 The modular design makes it easy to add new automation logic:
 
-1. Create a new file in `igm/features/`, e.g., `like_hashtags.py`.
+1. Create a new file in `iaf/features/`, e.g., `like_hashtags.py`.
 2. Inherit from `BaseFeature`:
 
    ```python
@@ -107,38 +107,39 @@ The modular design makes it easy to add new automation logic:
            # Your logic here...
    ```
 
-3. Register it in `igm/__main__.py` or call it from `run.py`.
+3. Register it in `iaf/__main__.py` or call it from `run.py`.
 
 ## 🔄 User Tracking System
 
 The bot intelligently tracks which users have been processed to avoid checking the same accounts repeatedly:
 
-- **Persistent Memory**: Uses Redis to remember who's been checked for 21 days (3 weeks)
+- **Persistent Memory**: Uses Redis to remember who's been checked for 28 days
 - **Separate Tracking**: Follow and Unfollow features maintain independent tracking
 - **Automatic Progress**: Each run processes new users, systematically working through your entire list
-- **Auto-Reset**: After 3 weeks, all users become "unprocessed" again to catch status changes
+- **Auto-Reset**: After 28 days, all users become "unprocessed" again to catch status changes
 
 **Example Flow:**
 
 - Run 1: Checks users 1-10, marks them as processed
 - Run 2: Automatically skips 1-10, checks users 11-20
 - Run 3: Skips 1-20, checks users 21-30
-- After 3 weeks: Reset, can re-check all users
+- After 28 days: Reset, can re-check all users
 
 This prevents the "Groundhog Day" problem where the bot would endlessly check the same 10 users.
 
 ## 🛡️ Anti-Detection Measures
 
 - **User Agent**: Mimics a standard Windows Chrome 120 browser.
-- **Random Breaks**: The bot sleeps between 10-30 seconds between actions.
-- **Gap Schedules**: Bot only executes "real" cycles every 2-5 hours.
+- **Random Breaks**: The bot sleeps between 30-60 seconds between actions.
+- **Gap Schedules**: Bot only executes "real" cycles every 3-6 hours.
+- **Daily Limits**: Max 28 actions per day to avoid triggering Instagram's limits.
 - **Session Re-use**: Avoids logging in from scratch, which is the #1 trigger for account flags.
 
 ## 🤝 Customization
 
-- To change the frequency of runs, edit `igm/core/session.py` -> `update_schedule`.
-- To adjust navigation timeouts, edit `igm/core/config.py`.
-- To change the tracking reset period (default: 3 weeks), edit `PROCESSED_USER_EXPIRY_DAYS` in `igm/core/session.py`.
+- To change the frequency of runs, edit `iaf/core/session.py` -> `update_schedule`.
+- To adjust navigation timeouts, edit `iaf/core/config.py`.
+- To change the tracking reset period (default: 28 days), edit `PROCESSED_USER_EXPIRY_DAYS` in `iaf/core/config.py`.
 
 ---
 

@@ -3,7 +3,7 @@ import json
 import logging
 import random
 from datetime import datetime, timedelta
-from .config import REDIS_URL, SCHEDULE_INTERVAL_MIN_HOURS, SCHEDULE_INTERVAL_MAX_HOURS
+from .config import REDIS_URL, SCHEDULE_INTERVAL_MIN_HOURS, SCHEDULE_INTERVAL_MAX_HOURS, PROCESSED_USER_EXPIRY_DAYS
 
 # Configure logging
 logging.basicConfig(
@@ -92,10 +92,6 @@ def update_schedule(username):
     next_run = datetime.now() + timedelta(hours=hours)
     r.set(f"schedule:{username}:next_run", next_run.timestamp())
     logger.info(f"Next run scheduled for {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
-
-
-# User Tracking System - Prevents checking the same users repeatedly
-PROCESSED_USER_EXPIRY_DAYS = 21  # 3 weeks
 
 
 def mark_user_processed(username, target_user, feature_type):

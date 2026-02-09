@@ -20,14 +20,14 @@ def import_cookies():
         print("No sessionid provided.")
         return
 
-    # Validate sessionid format
-    # Format: user_id:random_string:verification or user_id%3Arandom_string%3Averification
     import re
 
-    if not re.match(r"^\d+(%3A|:)[\w-]+(%3A|:)[\w-]+$", sessionid):
+    # Validate sessionid format (after URL decoding)
+    # Instagram sessionid format: user_id:random_string:additional:signature
+    # Example: 57323338046:8MXVvSGT8ev74J:7:AYhJacg4PdIW7AfA4k7B6CRrdJxny0z4_Jss3HKjsg
+    if not re.match(r"^\d+:.+", sessionid):
         print("ERROR: Invalid sessionid format.")
-        print("Expected format: user_id:random_string:verification")
-        print("Example: 1234567890:abc123xyz:1")
+        print("Expected format: user_id:random_string:...")
         return
 
     # Extract user_id (optional, but good to have)
