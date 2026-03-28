@@ -3,7 +3,7 @@ name: Instagram Automation Bot
 on:
   schedule:
     # Runs every 30 minutes
-    - cron: "*/30 * * * *"
+    # - cron: "*/30 * * * *"
   workflow_dispatch:
 
 jobs:
